@@ -5,9 +5,8 @@ The logger is designed to run easily in [Docker](https://www.docker.com) and to 
 
 ## 1. Prerequisites
 
-- Your MQTT source (such as ChirpStack or any MQTT publisher) running, accessible and with MQTT enabled
-
-- [Docker](https://www.docker.com) and [Docker Compose](https://docs.docker.com/compose/) are installed on your system
+- An [MQTT](https://mqtt.org) instance (such as the one provided by [ChirpStack](https://www.chirpstack.io)) running
+- [Docker](https://www.docker.com) and [Docker Compose](https://docs.docker.com/compose/) installed on your system
 
 ## 2. (Optional) Configure ChirpStack Gateway Bridge to Use JSON
 
