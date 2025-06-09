@@ -1,14 +1,14 @@
 # mqtt2json: log MQTT messages in JSON format
 
 This project exports [MQTT](https://mqtt.org) messages saving each message as a [JSON](https://www.json.org) object.
-The logger is designed to run easily in [Docker](https://www.docker.com) and to use it with [ChirpStack](https://www.chirpstack.io): indeed, it binds by default to the `application` and `gateway` topics.
+The logger is designed to run easily in [Docker](https://www.docker.com) and to use it with [ChirpStack](https://www.chirpstack.io): indeed, it binds by default to the `application` and `gateway` topics, although such settings can be changed.
 
 ## 1. Prerequisites
 
 - An [MQTT](https://mqtt.org) instance (such as the one provided by [ChirpStack](https://www.chirpstack.io)) running
 - [Docker](https://www.docker.com) and [Docker Compose](https://docs.docker.com/compose/) installed on your system
 
-## 2. (Optional) Configure ChirpStack Gateway Bridge to Use JSON
+## 2. Configure ChirpStack Gateway Bridge to Use JSON
 
 By default, [ChirpStack](https://www.chirpstack.io) encodes uplink and downlink messages in `protobuf` format.
 To use the software in this repository, you must change it to `json`:
@@ -68,8 +68,13 @@ gateway/#
 
 Enter the repository folder and run the following commands:
 ```bash
-sudo docker compose build
-sudo docker compose up
+docker compose build
+docker compose up
+```
+
+To clean up everything, run the following command:
+```bash
+docker compose down
 ```
 
 ## 6. Output format
