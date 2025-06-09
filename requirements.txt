@@ -1,1 +1,9 @@
+# MQTT Client
 paho-mqtt==2.1.0
+
+# ChirpStack Protobuf definitions
+chirpstack-api==3.12.4
+
+# Google's Protocol Buffers library
+protobuf==3.20.3
+google-api-python-client

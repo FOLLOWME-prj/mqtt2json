@@ -1,2 +1,8 @@
+# ChirpStack v4 default topics for JSON and Protobuf
+application/+/device/+/event/+
+gateway/+/event/+
+gateway/+/command/+
+
+# You can also use the simpler v3 topics if needed
 application/#
 gateway/#
