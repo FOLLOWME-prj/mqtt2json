@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  mqtt-logger:
+    build: .
+    container_name: mqtt2json
+    restart: unless-stopped
+    volumes:
+      - ./output:/app/output
+    environment:
+      - PYTHONUNBUFFERED=1
