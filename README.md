@@ -1,7 +1,8 @@
 # mqtt2json: log MQTT messages in JSON format
 
-This project exports [MQTT](https://mqtt.org) messages saving each message as a [JSON](https://www.json.org) object.
-The logger is designed to run easily in [Docker](https://www.docker.com) and to use it with [ChirpStack](https://www.chirpstack.io): indeed, it binds by default to the `application` and `gateway` topics, although such settings can be changed.
+This project exports MQTT messages by saving each message as a JSON object.
+The logger is designed to run easily in Docker and to work seamlessly with ChirpStack.
+By default, it subscribes to the application/# and gateway/# topics, but these can be customized.
 
 ## 1. Prerequisites
 
@@ -11,7 +12,9 @@ The logger is designed to run easily in [Docker](https://www.docker.com) and to 
 ## 2. Configure ChirpStack Gateway Bridge to Use JSON
 
 By default, [ChirpStack](https://www.chirpstack.io) encodes uplink and downlink messages in `protobuf` format.
-To use the software in this repository, you must change it to `json`:
+To use this tool as-is, you have two options:
+
+- Option A: Use JSON encoding (simpler)
 
 1. Open the gateway bridge configuration file located in `/etc/chirpstack-gateway-bridge/chirpstack-gateway-bridge.toml`
 2. Find the following line:
@@ -27,7 +30,9 @@ To use the software in this repository, you must change it to `json`:
     ```bash
     sudo systemctl restart chirpstack-gateway-bridge
     ```
-
+- Option B: Use protobuf decoding (recommended for full fidelity)
+This tool supports protobuf decoding of ChirpStack messages out of the box.
+Make sure your mqtt2json.py is configured properly and protobuf Python files are included in the Docker image.
 ## 3. Configure MQTT Topics
 
 The topics to subscribe to are loaded from the `topics.txt` file, considering the following:
