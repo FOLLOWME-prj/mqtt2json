@@ -67,6 +67,11 @@ gateway/#
     MQTT_BROKER = "your.mqtt.broker.ip"
     ```
     Replace `your.mqtt.broker.ip` with your actual broker IP or hostname, for example `127.0.0.1`.
+3. Set the USERMQTT and PASSWORDMTT variables based on the username and password of your MQTT broker.
+If your broker does not require authentication, leave both variables empty, like this:
+
+USERMQTT = ""
+PASSWORDMTT = ""
 
 
 ## 5. Build and run with Docker

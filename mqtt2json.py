@@ -1,94 +1,184 @@
-import sys
+# mqtt2json.py
 import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-import signal
-from gw import gw_pb2
-from google.protobuf.json_format import MessageToJson
-import paho.mqtt.client as mqtt
+import sys
 import json
+import signal
+import socket
 from datetime import datetime
 
+import pandas as pd
+import paho.mqtt.client as mqtt
+from gw import gw_pb2
+from google.protobuf.json_format import MessageToJson
 
-# Generic settings
-TOPICS_FILE = "topics.txt"
-OUTPUT_DIR = "output"
 
-# MQTT broker settings
-MQTT_BROKER = "your.mqtt.broker.ip"
-MQTT_PORT = 1883
+
+
+# ----------  MQTT Broker settings ----------
+MQTT_BROKER_Enter = "192.168.230.1"
+MQTT_PORT_Enter = 1883
+
+USERMQTT="Mqtt_User_Name"
+PASSWORDMTT="Mqtt_Password"
+
+
+# ---------- Config (env overrides; safe defaults) ----------
+TOPICS_FILE = os.getenv("TOPICS_FILE", "topics.txt")
+OUTPUT_DIR  = os.getenv("OUTPUT_DIR", "Data")
+
+
+
+# Broker & credentials (env first, then fallbacks)
+MQTT_BROKER   = os.getenv("MQTT_BROKER", MQTT_BROKER_Enter).strip()
+MQTT_PORT     = int(os.getenv("MQTT_PORT", MQTT_PORT_Enter))
+MQTT_USERNAME = os.getenv("MQTT_USERNAME", USERMQTT)
+MQTT_PASSWORD = os.getenv("MQTT_PASSWORD", PASSWORDMTT)
+
+
+
+# Default topics if topics.txt is missing
+DEFAULT_TOPICS = [("application/#", 0), ("eu868/gateway/#", 0), ("gateway/#", 0)]
+
+
+
+# Optional: stream every message to JSONL to avoid data loss on crash/restart
+STREAM_JSONL = os.getenv("STREAM_JSONL", "1") == "1"
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
-log_file_name = os.path.join(OUTPUT_DIR, f"mqtt_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
+csv_file_name   = os.path.join(OUTPUT_DIR, f"mqtt_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
+jsonl_file_name = os.path.join(OUTPUT_DIR, f"mqtt_stream_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jsonl")
 
-def load_topics(topics_file):
+data_records = []  # in-memory buffer for CSV-on-exit
+
+# ---------- Helpers ----------
+def load_topics(topics_file: str):
     try:
         with open(topics_file, "r", encoding="utf-8") as f:
-            return [line.strip() for line in f if line.strip() and not line.strip().startswith('#')]
+            topics = [line.strip() for line in f if line.strip() and not line.strip().startswith("#")]
+        # Accept "topic [qos]" or just "topic"
+        parsed = []
+        for line in topics:
+            parts = line.split()
+            if len(parts) == 1:
+                parsed.append((parts[0], 0))
+            else:
+                t, qos = parts[0], int(parts[1])
+                parsed.append((t, qos))
+        return parsed or DEFAULT_TOPICS
     except Exception as e:
-        print(f"Could not load topics from {topics_file}: {e}")
-        return ["application/#", "gateway/#"]
+        print(f"[BOOT] Could not load {topics_file}: {e} — using defaults.")
+        return DEFAULT_TOPICS
 
-def save_data_and_exit(sig, frame):
-    print("\nExiting. Data saved to", log_file_name)
+def decode_payload(payload: bytes):
+    # 1) Try JSON
+    try:
+        payload_str = payload.decode("utf-8")
+        return json.loads(payload_str)  # dict/list if JSON
+    except Exception:
+        pass
+
+    # 2) Try LoRa gateway protobufs
+    for proto_type in (gw_pb2.UplinkFrame, gw_pb2.DownlinkFrame):
+        try:
+            msg = proto_type()
+            msg.ParseFromString(payload)
+            return json.loads(MessageToJson(msg, preserving_proto_field_name=True))
+        except Exception:
+            continue
+
+    # 3) Fallback: repr of bytes
+    return repr(payload)
+
+def flatten_value_for_csv(v):
+    # CSV can store JSON strings for structured payloads
+    try:
+        return json.dumps(v, ensure_ascii=False, separators=(",", ":"))
+    except Exception:
+        return str(v)
+
+def save_csv_and_clear():
+    if not data_records:
+        print("[SAVE] No data to save.")
+        return
+    df = pd.DataFrame(data_records)
+    # Serialize dict/list payloads as JSON string for CSV
+    if "payload" in df.columns:
+        df["payload"] = df["payload"].apply(flatten_value_for_csv)
+    df.to_csv(csv_file_name, index=False)
+    print(f"[SAVE] CSV saved: {csv_file_name} ({len(df)} rows)")
+    data_records.clear()
+
+def stream_jsonl(record: dict):
+    with open(jsonl_file_name, "a", encoding="utf-8") as f:
+        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+def graceful_exit(sig, frame):
+    print("\n[EXIT] Caught signal, flushing data…")
+    save_csv_and_clear()
     sys.exit(0)
 
-signal.signal(signal.SIGINT, save_data_and_exit)
+signal.signal(signal.SIGINT, graceful_exit)
+signal.signal(signal.SIGTERM, graceful_exit)
 
-def on_connect(client, userdata, flags, rc):
-    topics = load_topics(TOPICS_FILE)
-    print("Connected with result code", rc)
-    for topic in topics:
-        client.subscribe(topic)
+# Normalize broker if user accidentally provided a URL
+if MQTT_BROKER.startswith(("mqtt://", "tcp://")):
+    MQTT_BROKER = MQTT_BROKER.split("://", 1)[1].split("/", 1)[0].strip()
+
+# Early sanity check
+try:
+    ai = socket.getaddrinfo(MQTT_BROKER, MQTT_PORT)
+    print(f"[BOOT] Using broker {MQTT_BROKER}:{MQTT_PORT} (resolves to {ai[0][4]})")
+except Exception as e:
+    print(f"[BOOT] Name/addr resolution FAILED for {MQTT_BROKER}:{MQTT_PORT}: {e}")
+    sys.exit(2)
+
+TOPICS = load_topics(TOPICS_FILE)
+print(f"[BOOT] Topics: {TOPICS}")
+print(f"[BOOT] Output dir: {OUTPUT_DIR}")
+print(f"[BOOT] Auth user set: {'yes' if MQTT_USERNAME else 'no'}")
+
+# ---------- MQTT callbacks (Paho v2) ----------
+def on_connect(client, userdata, flags, reasonCode, properties=None):
+    print(f"[CONNECT] code={reasonCode}")
+    for topic, qos in TOPICS:
+        client.subscribe(topic, qos)
+        print(f"[SUB] {topic} (QoS {qos})")
 
 def on_message(client, userdata, msg):
-    print(f"Received message on topic: {msg.topic}, payload length: {len(msg.payload)}")
+    decoded = decode_payload(msg.payload)
 
-    # Try JSON decode
-    try:
-        payload_str = msg.payload.decode('utf-8', errors='strict').strip()
-        try:
-            payload_json = json.loads(payload_str)
-            payload_to_write = json.dumps(payload_json, separators=(',', ':'))
-            print("Received JSON payload")
-        except Exception:
-            raise ValueError("Not JSON, try protobuf")
-    except Exception:
-        payload_str = None
+    topic_parts = msg.topic.split("/")
+    device_type = "gateway" if "gateway" in topic_parts else ("device" if "device" in topic_parts else None)
+    mac = None
+    if device_type and device_type in topic_parts:
+        i = topic_parts.index(device_type) + 1
+        if i < len(topic_parts):
+            mac = topic_parts[i]
+    state = topic_parts[-1] if topic_parts else None
 
-    if payload_str is None or 'payload_to_write' not in locals():
-        # Try protobuf decode(s)
-        decode_success = False
-        for proto_type in [gw_pb2.UplinkFrame, gw_pb2.DownlinkFrame]:  # Add more types if needed
-            try:
-                proto_msg = proto_type()
-                proto_msg.ParseFromString(msg.payload)
-                payload_to_write = MessageToJson(proto_msg, preserving_proto_field_name=True)
-                print(f"Received protobuf payload of type: {proto_type.__name__}")
-                decode_success = True
-                break
-            except Exception as e:
-                # Try next proto type
-                continue
+    record = {
+        "timestamp": datetime.now().isoformat(timespec="seconds"),
+        "topic": msg.topic,
+        "device_type": device_type,
+        "mac": mac,
+        "state": state,
+        "payload": decoded,
+    }
 
-        if not decode_success:
-            print(f"Failed to decode payload as JSON or protobuf.")
-            print(f"Raw payload bytes (first 50): {msg.payload[:50]}")
-            payload_to_write = "<Could not decode payload as JSON or protobuf>"
+    data_records.append(record)
+    if STREAM_JSONL:
+        stream_jsonl(record)
 
-            # Optionally save unknown payload to file for offline analysis
-            unknown_file = os.path.join(OUTPUT_DIR, "unknown_payloads.bin")
-            with open(unknown_file, "ab") as f:
-                f.write(msg.payload + b"\n---\n")
+    print(f"[MSG] {msg.topic} | MAC={mac} | State={state} | len={len(msg.payload)}")
 
-    print(payload_to_write)
-    with open(log_file_name, "a", encoding="utf-8") as f:
-        f.write(payload_to_write + "\n")
+# ---------- Connect & loop ----------
+client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+if MQTT_USERNAME or MQTT_PASSWORD:
+    client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
 
-
-client = mqtt.Client()
 client.on_connect = on_connect
 client.on_message = on_message
 
-client.connect(MQTT_BROKER, MQTT_PORT, 60)
+print(f"[CONNECTING] {MQTT_BROKER}:{MQTT_PORT} (auth={'yes' if MQTT_USERNAME else 'no'})")
+client.connect(MQTT_BROKER, MQTT_PORT, keepalive=60)
 client.loop_forever()
