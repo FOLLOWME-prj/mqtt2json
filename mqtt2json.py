@@ -15,7 +15,7 @@ from google.protobuf.json_format import MessageToJson
 
 
 # ----------  MQTT Broker settings ----------
-MQTT_BROKER_Enter = "192.168.230.1"
+MQTT_BROKER_Enter = "your.mqtt.broker.ip"
 MQTT_PORT_Enter = 1883
 
 USERMQTT="Mqtt_User_Name"
