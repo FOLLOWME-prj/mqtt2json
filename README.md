@@ -1,4 +1,13 @@
+
+
+
 # mqtt2json: log MQTT messages in JSON format
+
+
+::contentReference[oaicite:0]{index=0}
+
+
+## 🧠 High-Level Architecture
 
 This project exports MQTT messages by saving each message as a JSON object.
 The logger is designed to run easily in Docker and to work seamlessly with ChirpStack.
@@ -93,3 +102,4 @@ Output is represented by a single line for each message.
 Each line in the output file represents a [JSON](https://www.json.org) object.
 
 A sample output can be found in the `output` folder.
+
