@@ -3,8 +3,14 @@ services:
     build: .
     container_name: mqtt2json
     restart: unless-stopped
+    working_dir: /app
     volumes:
+      # Host ./output  <->  Container /app/output
       - ./output:/app/output
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
+      # Tell mqtt2json.py to write here
+      - OUTPUT_DIR=/app/output
+      # Optional: keep JSONL streaming (already used in your code)
+      - STREAM_JSONL=1
