@@ -1,10 +1,9 @@
 # mqtt2json: log MQTT messages in JSON format
 
+![High Level Architecture](mqtt_architecture.png)
 
-::contentReference[oaicite:0]{index=0}
+##  🧠 High-Level Architecture
 
-
-## 🧠 High-Level Architecture
 
 This tool subscribes to MQTT topics, decodes JSON or Protobuf payloads, prints logs to console, and stores them live in CSV + JSONL files.
 
@@ -98,5 +97,6 @@ Output is represented by a single line for each message.
 Each line in the output file represents a [JSON](https://www.json.org) object.
 
 A sample output can be found in the `output` folder.
+
 
 
