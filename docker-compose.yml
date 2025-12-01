@@ -1,16 +1,25 @@
+version: "3.8"
+
 services:
   mqtt2json:
     build: .
     container_name: mqtt2json
     restart: unless-stopped
     working_dir: /app
-    volumes:
-      # Host ./output  <->  Container /app/output
-      - ./output:/app/output
     environment:
-      - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/app
-      # Tell mqtt2json.py to write here
-      - OUTPUT_DIR=/app/output
-      # Optional: keep JSONL streaming (already used in your code)
-      - STREAM_JSONL=1
+      # Override broker/port if needed
+      MQTT_BROKER: chirpstackdocker-mosquitto-1   # name of your existing Mosquitto container
+      MQTT_PORT: "1883"
+      # Optionally, if auth is needed:
+      # MQTT_USERNAME: ""
+      # MQTT_PASSWORD: ""
+    volumes:
+      # Map the Data directory so CSV files are visible on the host
+      - ./Data:/app/Data
+    networks:
+      - chirpstack_net
+
+networks:
+  chirpstack_net:
+    external: true
+    name: chirpstackdocker_default

@@ -1,2 +1,4 @@
 application/#
 gateway/#
+eu868/application/#
+eu868/gateway/#

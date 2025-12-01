@@ -1,95 +1,185 @@
-# mqtt2json: log MQTT messages in JSON format
+# Capture Data
 
-This project exports MQTT messages by saving each message as a JSON object.
-The logger is designed to run easily in Docker and to work seamlessly with ChirpStack.
-By default, it subscribes to the application/# and gateway/# topics, but these can be customized.
+A Python-based MQTT data capture tool for subscribing to MQTT topics, decoding JSON and Protobuf payloads, and saving structured data for analysis.  
+Ideal for IoT, LoRaWAN, or any MQTT-based system.
 
-## 1. Prerequisites
+---
 
-- An [MQTT](https://mqtt.org) instance (such as the one provided by [ChirpStack](https://www.chirpstack.io)) running
-- [Docker](https://www.docker.com) and [Docker Compose](https://docs.docker.com/compose/) installed on your system
+## Features
 
-## 2. Configure ChirpStack Gateway Bridge to Use JSON
+- Connects to an MQTT broker (local or remote)
+- Subscribes to custom topics (supports wildcards)
+- Decodes:
+  - JSON
+  - Google Protocol Buffers (Protobuf)
+  - Raw binary data (as fallback)
+- Extracts device information from topics (e.g., MAC, device type, state)
+- Saves results as CSV for easy analysis
 
-By default, [ChirpStack](https://www.chirpstack.io) encodes uplink and downlink messages in `protobuf` format.
-To use this tool as-is, you have two options:
+---
 
-- Option A: Use JSON encoding (simpler)
+## Requirements
 
-1. Open the gateway bridge configuration file located in `/etc/chirpstack-gateway-bridge/chirpstack-gateway-bridge.toml`
-2. Find the following line:
+- Python 3.8+
+- MQTT broker accessible on your network (e.g., [Eclipse Mosquitto](https://mosquitto.org/))
+- Access to relevant `.proto` files for Protobuf decoding (if used)
+- Python packages:
+  - `paho-mqtt`
+  - `pandas`
+  - `protobuf`
+  - (optional) `google.protobuf.json_format` for Protobuf JSON export
+
+---
+
+## Installation
+
+1. **Clone this repository:**
+    ```sh
+    git clone https://github.com/yourusername/capture-data.git
+    cd capture-data
     ```
-    marshaler="protobuf"
+
+2. **Install required Python packages:**
+    ```sh
+    pip install -r requirements.txt
     ```
-3. Change it to:
+    Or manually:
+    ```sh
+    pip install paho-mqtt pandas protobuf
     ```
-    marshaler="json"
+
+3. **(If using Protobuf) Generate Python files from `.proto` definitions:**
+    ```sh
+    # Make sure you have protoc installed (version must match your Python protobuf)
+    # Example:
+    protoc --proto_path=. --python_out=. gw/gw.proto
+    protoc --proto_path=. --python_out=. common/common.proto
     ```
-4. Save and close the file
-5. Restart the gateway bridge:
-    ```bash
-    sudo systemctl restart chirpstack-gateway-bridge
-    ```
-- Option B: Use protobuf decoding (recommended for full fidelity)
-This tool supports protobuf decoding of ChirpStack messages out of the box.
-Make sure your mqtt2json.py is configured properly and protobuf Python files are included in the Docker image.
-## 3. Configure MQTT Topics
+    - Ensure all generated `_pb2.py` files are present in the repo.
 
-The topics to subscribe to are loaded from the `topics.txt` file, considering the following:
+---
 
-* Each line should be a topic string (wildcards like `#` are supported)
+## Configuration
 
-* By default, the file includes the `application` and `gateway` topics (to attach to [ChirpStack](https://www.chirpstack.io) data), although they can be changed easily:
-
-  ```
-  application/#
-  gateway/#
-  ```
-
-* You can add, remove, or comment out lines (lines starting with `#` will be ignored).
-
-**Sample `topics.txt` content:**
-
-```
-# ChirpStack default topics
-application/#
-gateway/#
-
-# Custom topic example
-# my/custom/topic
-```
-
-## 4. Configure the tool
-
-1. Open `mqtt2json.py` in your editor:
-2. Set the `MQTT_BROKER` variable (and, optionally, the `MQTT_PORT` variable accordingly) to your [MQTT](https://mqtt.org) broker address:
+1. **Set MQTT broker address and port in your script:**
     ```python
-    MQTT_BROKER = "your.mqtt.broker.ip"
+    MQTT_BROKER = "192.168.230.1"   # Change to your broker's IP or hostname
+    MQTT_PORT = 1883                # Change to your broker's port if different
     ```
-    Replace `your.mqtt.broker.ip` with your actual broker IP or hostname, for example `127.0.0.1`.
-3. Set the USERMQTT and PASSWORDMTT variables based on the username and password of your MQTT broker.
-If your broker does not require authentication, leave both variables empty, like this:
+2. **Set your topic filters:**
+    ```python
+    MQTT_TOPICS = [("application/#", 0), ("eu868/gateway/#", 0), ("gateway/#", 0)]
+    ```
+    - Adjust topics as needed for your environment.
 
-USERMQTT = ""
-PASSWORDMTT = ""
+3. **Protobuf Decoding (optional):**
+    - If your payloads use Protobuf, make sure you have the relevant `.proto` files.
+    - Regenerate `_pb2.py` after any changes to the `.proto` files or when changing Protobuf versions.
 
+---
 
-## 5. Build and run with Docker
+## How to Connect to the Network
 
-Enter the repository folder and run the following commands:
-```bash
-docker compose build
-docker compose up
-```
+1. **Ensure your MQTT broker is running and reachable:**
+    - If running locally: `localhost` or `127.0.0.1`
+    - If on another device: Use that device’s IP (e.g., `192.168.230.1`)
+    - If using a cloud broker: Use the DNS/host and port provided
 
-To clean up everything, run the following command:
-```bash
-docker compose down
-```
+2. **Test network access:**
+    - From your client machine:
+        ```sh
+        ping 192.168.230.1
+        ```
+    - Test MQTT connection using an MQTT client (e.g., [MQTT Explorer](https://mqtt-explorer.com/) or [mosquitto_sub](https://mosquitto.org/)):
+        ```sh
+        mosquitto_sub -h 192.168.230.1 -t "#" -v
+        ```
+    - If you get a response, your network connection is good.
 
-## 6. Output format
+3. **Firewall and Broker Configuration:**
+    - Ensure that TCP port `1883` (or the port you use) is open on the broker host.
+    - Broker must be configured to listen on the desired interface (not just `localhost`).
 
-Output is represented by a single line for each message.
-Each line in the output file represents a [JSON](https://www.json.org) object.
+4. **Authentication (if required):**
+    - If your broker uses usernames/passwords or TLS, add them in the Python script:
+        ```python
+        mqttc.username_pw_set("username", "password")
+        # For TLS/SSL
+        mqttc.tls_set(ca_certs="path/to/ca.crt")
+        ```
 
-A sample output can be found in the `output` folder.
+---
+
+## Usage
+
+1. **Start the script:**
+    ```sh
+    python Capture\ Data.py
+    ```
+
+2. **On receiving MQTT messages:**
+    - Decoded payloads and topic details are displayed.
+    - Data is stored in memory until you exit.
+
+3. **To stop and save:**
+    - Press `Ctrl+C` in the terminal or command prompt.
+    - The script will save all captured data as a CSV file in the `mqtt_logs` directory, with a timestamped filename.
+
+---
+
+## Troubleshooting
+
+- **Cannot connect to MQTT broker?**
+    - Check broker is running and listening on the correct IP/port.
+    - Ensure no firewall is blocking port `1883`.
+    - Double-check IP addresses and network settings.
+
+- **Protobuf errors?**
+    - Make sure you’re using matching versions of `protoc` and `protobuf` Python library.
+    - Regenerate `_pb2.py` files with the correct version of `protoc`.
+
+- **Can’t decode payload?**
+    - If not JSON or Protobuf, raw binary will be stored for offline analysis.
+
+- **Still stuck?**
+    - Try connecting with a third-party MQTT client (MQTT Explorer, mosquitto_sub).
+    - Check your broker logs for errors.
+
+---
+
+## Example Output
+
+Captured data is stored as a CSV file like this:
+
+| timestamp           | topic                      | device_type | mac         | state     | payload           |
+|---------------------|----------------------------|-------------|-------------|-----------|-------------------|
+| 2025-08-06 13:00:00 | application/device/xxx/tx  | device      | abcd1234    | tx        | {...decoded...}   |
+| ...                 | ...                        | ...         | ...         | ...       | ...               |
+
+---
+
+## Contributing
+
+Feel free to open issues or submit pull requests!
+
+---
+
+## License
+
+[MIT License](LICENSE)
+
+---
+
+## Acknowledgements
+
+- [paho-mqtt](https://pypi.org/project/paho-mqtt/)
+- [protobuf](https://pypi.org/project/protobuf/)
+- [Pandas](https://pandas.pydata.org/)
+- Your MQTT broker of choice
+
+---
+
+## Questions?
+
+Open an issue or contact [TareghKhanjari@CNR.it].
+
