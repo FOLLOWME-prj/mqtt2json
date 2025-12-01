@@ -12,7 +12,7 @@ from google.protobuf.json_format import MessageToJson
 
 
 # ----------  MQTT Broker settings (defaults) ----------
-MQTT_BROKER_Enter = "192.168.230.1"
+MQTT_BROKER = "your.mqtt.broker.ip"
 MQTT_PORT_Enter = 1883
 
 USERMQTT = ""
@@ -293,3 +293,4 @@ mqttc.on_message = on_message
 print(f"[BOOT] Using broker {MQTT_BROKER}:{MQTT_PORT}")
 mqttc.connect(MQTT_BROKER, MQTT_PORT, 60)
 mqttc.loop_forever()
+
