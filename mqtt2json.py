@@ -11,13 +11,7 @@ from google.protobuf.json_format import MessageToJson
 
 from chirpstack_window_module import summarize_chirpstack_windows
 
-<<<<<<< HEAD
 print("[BOOT] mqtt2json starting (version with SIGTERM->KeyboardInterrupt)")
-=======
-# ----------  MQTT Broker settings (defaults) ----------
-MQTT_BROKER = "your.mqtt.broker.ip"
-MQTT_PORT_Enter = 1883
->>>>>>> 658e60ed69d8eee4924b276ee227754945db45d3
 
 # ---------------------------
 # MQTT Broker settings
@@ -305,7 +299,6 @@ def on_message(client, userdata, msg):
 # Signal handling
 # ---------------------------
 
-<<<<<<< HEAD
 def handle_sigterm(signum, frame):
     """
     Docker sends SIGTERM (15) on 'docker stop' / 'docker compose down'.
@@ -361,9 +354,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-=======
-print(f"[BOOT] Using broker {MQTT_BROKER}:{MQTT_PORT}")
-mqttc.connect(MQTT_BROKER, MQTT_PORT, 60)
-mqttc.loop_forever()
-
->>>>>>> 658e60ed69d8eee4924b276ee227754945db45d3
