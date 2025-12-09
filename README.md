@@ -13,7 +13,9 @@ DevAddr, and automatically generates time-window summaries.
   1. Clone the Repository
   -------------------------
 
-git clone https://github.com/FOLLOWME-prj/mqtt2json.git cd mqtt2json
+git clone https://github.com/FOLLOWME-prj/mqtt2json.git 
+
+cd mqtt2json
 
   ------------------
   2. Prerequisites
@@ -89,3 +91,4 @@ sudo docker compose down
 -   Time-window aggregation
 -   Fully Dockerized
 -   Window configurable via Docker
+
