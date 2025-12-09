@@ -1,5 +1,6 @@
 mqtt2json: Log MQTT Messages in JSON and CSV Format
 
+![MQTT Architecture](docs/mqtt_architecture.png)
 
 This project subscribes to MQTT topics and logs all received messages
 into structured files (CSV and JSON). It is designed to run easily
@@ -153,3 +154,4 @@ Open an issue or contact [TareghKhanjari@CNR.it].
 -   Time-window aggregation
 -   Fully Dockerized
 -   Window configurable via Docker
+
