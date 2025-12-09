@@ -366,4 +366,5 @@ print(f"[BOOT] Using broker {MQTT_BROKER}:{MQTT_PORT}")
 mqttc.connect(MQTT_BROKER, MQTT_PORT, 60)
 mqttc.loop_forever()
 
->>>>>>> 658e60ed69d8eee4924b276ee227754945db45d3
+
+
