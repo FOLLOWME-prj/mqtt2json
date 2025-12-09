@@ -1,20 +1,21 @@
 FROM python:3.11-slim
 
+ENV PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
-# System dependencies
+# System deps for pandas & protobuf if needed
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy and install Python dependencies first (better cache)
-COPY requirements.txt /app/requirements.txt
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy your code
-COPY . /app
+# Copy ALL project files (including gw/, mqtt2json.py, chirpstack_window_module.py, topics.txt, etc.)
+COPY . .
 
-# Ensure output directory exists
+# Ensure Data dir exists in image (also mapped as volume)
 RUN mkdir -p /app/Data
 
-CMD ["python", "-u", "mqtt2json.py"]
+CMD ["python", "mqtt2json.py"]

@@ -1,25 +1,20 @@
-version: "3.8"
+version: "3.9"
 
 services:
   mqtt2json:
     build: .
     container_name: mqtt2json
     restart: unless-stopped
-    working_dir: /app
     environment:
-      # Override broker/port if needed
-      MQTT_BROKER: chirpstackdocker-mosquitto-1   # name of your existing Mosquitto container
+      MQTT_BROKER: "172.17.73.34"
       MQTT_PORT: "1883"
-      # Optionally, if auth is needed:
-      # MQTT_USERNAME: ""
-      # MQTT_PASSWORD: ""
-    volumes:
-      # Map the Data directory so CSV files are visible on the host
-      - ./Data:/app/Data
-    networks:
-      - chirpstack_net
+      MQTT_USERNAME: ""          # or set real user
+      MQTT_PASSWORD: ""          # or set real password
+      TOPICS_FILE: "/app/topics.txt"
+      WINDOW_SECONDS: "55"       #  control window size here
 
-networks:
-  chirpstack_net:
-    external: true
-    name: chirpstackdocker_default
+    volumes:
+      - ./Data:/app/Data
+      - ./topics.txt:/app/topics.txt:ro
+    # If your broker is reachable on the host network and that IP is on host:
+    # network_mode: "host"

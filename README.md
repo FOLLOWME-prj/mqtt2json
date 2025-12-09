@@ -1,95 +1,91 @@
-# mqtt2json: log MQTT messages in JSON format
+mqtt2json: Log MQTT Messages in JSON and CSV Format
+![MQTT Architecture](mqtt_architecture.png)
 
-This project exports MQTT messages by saving each message as a JSON object.
-The logger is designed to run easily in Docker and to work seamlessly with ChirpStack.
-By default, it subscribes to the application/# and gateway/# topics, but these can be customized.
+This project subscribes to MQTT topics and logs all received messages
+into structured files (CSV and JSON). It is designed to run easily
+inside Docker and integrates seamlessly with ChirpStack.
 
-## 1. Prerequisites
+By default, it subscribes to ChirpStack application and gateway topics,
+decodes LoRaWAN frames, extracts metadata such as MType, DevEUI,
+DevAddr, and automatically generates time-window summaries.
 
-- An [MQTT](https://mqtt.org) instance (such as the one provided by [ChirpStack](https://www.chirpstack.io)) running
-- [Docker](https://www.docker.com) and [Docker Compose](https://docs.docker.com/compose/) installed on your system
+  -------------------------
+  1. Clone the Repository
+  -------------------------
 
-## 2. Configure ChirpStack Gateway Bridge to Use JSON
+git clone https://github.com/FOLLOWME-prj/mqtt2json.git cd mqtt2json
 
-By default, [ChirpStack](https://www.chirpstack.io) encodes uplink and downlink messages in `protobuf` format.
-To use this tool as-is, you have two options:
+  ------------------
+  2. Prerequisites
+  ------------------
 
-- Option A: Use JSON encoding (simpler)
+-   A running MQTT Broker (for example from ChirpStack)
+-   Docker
+-   Docker Compose
 
-1. Open the gateway bridge configuration file located in `/etc/chirpstack-gateway-bridge/chirpstack-gateway-bridge.toml`
-2. Find the following line:
-    ```
-    marshaler="protobuf"
-    ```
-3. Change it to:
-    ```
-    marshaler="json"
-    ```
-4. Save and close the file
-5. Restart the gateway bridge:
-    ```bash
-    sudo systemctl restart chirpstack-gateway-bridge
-    ```
-- Option B: Use protobuf decoding (recommended for full fidelity)
-This tool supports protobuf decoding of ChirpStack messages out of the box.
-Make sure your mqtt2json.py is configured properly and protobuf Python files are included in the Docker image.
-## 3. Configure MQTT Topics
+  -----------------------------------------------------------
+  3. Configure ChirpStack Gateway Bridge (JSON or Protobuf)
+  -----------------------------------------------------------
 
-The topics to subscribe to are loaded from the `topics.txt` file, considering the following:
+Option A: Use JSON Encoding (Simpler)
 
-* Each line should be a topic string (wildcards like `#` are supported)
+sudo nano /etc/chirpstack-gateway-bridge/chirpstack-gateway-bridge.toml
 
-* By default, the file includes the `application` and `gateway` topics (to attach to [ChirpStack](https://www.chirpstack.io) data), although they can be changed easily:
+Change: marshaler=“protobuf”
 
-  ```
-  application/#
-  gateway/#
-  ```
+To: marshaler=“json”
 
-* You can add, remove, or comment out lines (lines starting with `#` will be ignored).
+Restart: sudo systemctl restart chirpstack-gateway-bridge
 
-**Sample `topics.txt` content:**
+Option B: Use Protobuf Encoding (Recommended) No changes required. This
+project supports protobuf decoding.
 
-```
-# ChirpStack default topics
-application/#
-gateway/#
+  --------------------------
+  4. Configure MQTT Topics
+  --------------------------
 
-# Custom topic example
-# my/custom/topic
-```
+topics.txt default content:
 
-## 4. Configure the tool
+application/# gateway/#
 
-1. Open `mqtt2json.py` in your editor:
-2. Set the `MQTT_BROKER` variable (and, optionally, the `MQTT_PORT` variable accordingly) to your [MQTT](https://mqtt.org) broker address:
-    ```python
-    MQTT_BROKER = "your.mqtt.broker.ip"
-    ```
-    Replace `your.mqtt.broker.ip` with your actual broker IP or hostname, for example `127.0.0.1`.
-3. Set the USERMQTT and PASSWORDMTT variables based on the username and password of your MQTT broker.
-If your broker does not require authentication, leave both variables empty, like this:
+  ------------------------------
+  5. Configure Docker Settings
+  ------------------------------
 
-USERMQTT = ""
-PASSWORDMTT = ""
+nano docker-compose.yml
 
+Modify:
 
-## 5. Build and run with Docker
+MQTT_BROKER: “172.17.73.34” MQTT_PORT: “1883” MQTT_USERNAME: “”
+MQTT_PASSWORD: “” WINDOW_SECONDS: “55”
 
-Enter the repository folder and run the following commands:
-```bash
-docker compose build
-docker compose up
-```
+  ------------------------------
+  6. Build and Run the Project
+  ------------------------------
 
-To clean up everything, run the following command:
-```bash
-docker compose down
-```
+sudo docker compose build sudo docker compose up
 
-## 6. Output format
+To stop:
 
-Output is represented by a single line for each message.
-Each line in the output file represents a [JSON](https://www.json.org) object.
+sudo docker compose down
 
-A sample output can be found in the `output` folder.
+  -----------------------------------------
+  7. Output Files (Saved in Data/ Folder)
+  -----------------------------------------
+
+1.  Raw CSV of MQTT messages
+2.  Window summary CSV
+3.  JSONL file (one JSON object per line)
+
+  ---------------------
+  8. Features Summary
+  ---------------------
+
+-   MQTT live subscription
+-   ChirpStack integration
+-   Protobuf & JSON decoding
+-   LoRaWAN MType decoding
+-   CSV + JSONL logging
+-   Time-window aggregation
+-   Fully Dockerized
+-   Window configurable via Docker
