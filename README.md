@@ -1,4 +1,4 @@
-# mqtt2json
+# MQTT2JSON
 
 ![MQTT Architecture](mqtt_architecture.png)
 
@@ -92,5 +92,6 @@ sudo docker compose down
 -   Time-window aggregation
 -   Fully Dockerized
 -   Window configurable via Docker
+
 
 
