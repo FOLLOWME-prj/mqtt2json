@@ -1,4 +1,5 @@
-mqtt2json: Log MQTT Messages in JSON and CSV Format
+# mqtt2json
+
 ![MQTT Architecture](mqtt_architecture.png)
 
 This project subscribes to MQTT topics and logs all received messages
@@ -91,4 +92,5 @@ sudo docker compose down
 -   Time-window aggregation
 -   Fully Dockerized
 -   Window configurable via Docker
+
 
