@@ -10,88 +10,97 @@ By default, it subscribes to ChirpStack application and gateway topics,
 decodes LoRaWAN frames, extracts metadata such as MType, DevEUI,
 DevAddr, and automatically generates time-window summaries.
 
-  -------------------------
-  1. Clone the Repository
-  -------------------------
 
-git clone https://github.com/FOLLOWME-prj/mqtt2json.git 
+# Installation
 
+
+### 1) Clone the repository and enter the folder:
+
+```bash
+git clone https://github.com/FOLLOWME-prj/mqtt2json.git
+```
+```bash
 cd mqtt2json
+```
 
-  ------------------
-  2. Prerequisites
-  ------------------
-
--   A running MQTT Broker (for example from ChirpStack)
--   Docker
--   Docker Compose
-
-  -----------------------------------------------------------
-  3. Configure ChirpStack Gateway Bridge (JSON or Protobuf)
-  -----------------------------------------------------------
+### 2) Configure ChirpStack Gateway Bridge (JSON or Protobuf)
 
 Option A: Use JSON Encoding (Simpler)
+This option decodes the messages to JSON.
 
+Open the ChirpStack Gateway Bridge configuration file:
+```bash
 sudo nano /etc/chirpstack-gateway-bridge/chirpstack-gateway-bridge.toml
+```
+Find the marshaler setting and change:
 
-Change: marshaler=“protobuf”
+marshaler = "protobuf"
 
-To: marshaler=“json”
+to:
 
-Restart: sudo systemctl restart chirpstack-gateway-bridge
+marshaler = "json"
 
-Option B: Use Protobuf Encoding (Recommended) No changes required. This
-project supports protobuf decoding.
+Restart the service:
+```bash
+sudo systemctl restart chirpstack-gateway-bridge
+```
 
-  --------------------------
-  4. Configure MQTT Topics
-  --------------------------
+Option B: Use Protobuf Encoding
+No changes required. This project supports Protobuf decoding.
 
-topics.txt default content:
 
-application/# gateway/#
 
-  ------------------------------
-  5. Configure Docker Settings
-  ------------------------------
+# Configuration
 
+
+### 1) Update topics.txt
+
+Edit topics.txt and set the MQTT topics based on your network configuration.
+
+Example topics:
+application/#
+gateway/#
+
+
+### 2) Update docker-compose.yml
+
+Open docker-compose.yml:
+```bash
 nano docker-compose.yml
+```
+Modify the broker and port:
 
-Modify:
+MQTT_BROKER: "172.17.73.34"
+MQTT_PORT: "1883"
 
-MQTT_BROKER: “172.17.73.34” MQTT_PORT: “1883” MQTT_USERNAME: “”
-MQTT_PASSWORD: “” WINDOW_SECONDS: “55”
+If MQTT authentication is used, set username and password. If not, leave empty:
 
-  ------------------------------
-  6. Build and Run the Project
-  ------------------------------
+MQTT_USERNAME: ""
+MQTT_PASSWORD: ""
 
-sudo docker compose build sudo docker compose up
+Choose the capture time window (seconds):
 
-To stop:
+WINDOW_SECONDS: "55"
 
-sudo docker compose down
 
-  -----------------------------------------
-  7. Output Files (Saved in Data/ Folder)
-  -----------------------------------------
 
-1.  Raw CSV of MQTT messages
-2.  Window summary CSV
-3.  JSONL file (one JSON object per line)
+# Execution
 
-  ---------------------
-  8. Features Summary
-  ---------------------
 
--   MQTT live subscription
--   ChirpStack integration
--   Protobuf & JSON decoding
--   LoRaWAN MType decoding
--   CSV + JSONL logging
--   Time-window aggregation
--   Fully Dockerized
--   Window configurable via Docker
+Run the project using Docker Compose:
+```bash
+sudo docker compose up
+```
+After getting enough data, stop the program using:
+
+CTRL + C
+
+The captured data is saved in the Data folder.
+Messages are saved in two formats: JSON and CSV.
+A CSV file is also generated containing the number of Join Requests and Uplinks
+captured per configured time window.
+
+
 
 
 
